@@ -518,6 +518,9 @@ binlog:
       #   cpu: 4000m
       #   memory: 4Gi
 
+    # max binlog records that being cached
+    cacheBinlogCount: 16
+
     # Please refer to https://github.com/pingcap/tidb-binlog/blob/master/cmd/drainer/drainer.toml for the default
     # drainer configurations (change to the tags of your drainer version),
     # just follow the format in the file and configure in the 'config' section
