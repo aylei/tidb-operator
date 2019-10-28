@@ -90,14 +90,8 @@ func (in *FooSpec) DeepCopyInto(out *FooSpec) {
 	*out = *in
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = make([][]int, len(*in))
-		for i := range *in {
-			if (*in)[i] != nil {
-				in, out := &(*in)[i], &(*out)[i]
-				*out = make([]int, len(*in))
-				copy(*out, *in)
-			}
-		}
+		*out = make([]int, len(*in))
+		copy(*out, *in)
 	}
 	return
 }

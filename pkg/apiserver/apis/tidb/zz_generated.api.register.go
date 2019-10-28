@@ -77,6 +77,21 @@ func Resource(resource string) schema.GroupResource {
 	return SchemeGroupVersion.WithResource(resource).GroupResource()
 }
 
+// +genclient
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+type Foo struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FooSpec
+	Status FooStatus
+}
+
+type FooStatus struct {
+	CurrentReplicas int
+}
+
 //
 // Foo Functions and Structs
 //

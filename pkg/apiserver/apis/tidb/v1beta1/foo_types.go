@@ -32,6 +32,7 @@ type Foo struct {
 }
 
 // FooSpec defines the desired state of Foo
+// +genregister:unversioned=false
 type FooSpec struct {
 	Replicas      []int `json:"replicas,omitempty"`
 	ConfigMapName string `json:"string,omitempty"`

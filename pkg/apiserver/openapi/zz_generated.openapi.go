@@ -549,15 +549,8 @@ func schema_apiserver_apis_tidb_v1beta1_FooSpec(ref common.ReferenceCallback) co
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Type: []string{"array"},
-										Items: &spec.SchemaOrArray{
-											Schema: &spec.Schema{
-												SchemaProps: spec.SchemaProps{
-													Type:   []string{"integer"},
-													Format: "int32",
-												},
-											},
-										},
+										Type:   []string{"integer"},
+										Format: "int32",
 									},
 								},
 							},

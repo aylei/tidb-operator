@@ -20,7 +20,7 @@ set -o pipefail
 scriptdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 ${scriptdir}/generate-internal-groups.sh \
-  all \
+  registry \
   github.com/pingcap/tidb-operator/pkg/apiserver \
   github.com/pingcap/tidb-operator/pkg/apiserver/apis \
   github.com/pingcap/tidb-operator/pkg/apiserver/apis \

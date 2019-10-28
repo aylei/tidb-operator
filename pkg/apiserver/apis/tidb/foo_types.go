@@ -13,23 +13,8 @@
 
 package tidb
 
-import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-type Foo struct {
-	metav1.TypeMeta
-	metav1.ObjectMeta
-	Spec   FooSpec
-	Status FooStatus
-}
-
-type FooStatus struct {
-	CurrentReplicas int
-}
 
 type FooSpec struct {
 	Replicas      []int
