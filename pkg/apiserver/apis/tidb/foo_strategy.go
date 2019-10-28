@@ -12,3 +12,34 @@
 // limitations under the License.
 
 package tidb
+
+import (
+	"context"
+	"sort"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
+)
+
+func (FooStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
+	o := obj.(*Foo)
+	if o.Spec.ConfigMapName == "" {
+		o.Spec.ConfigMapName = "default"
+	}
+}
+
+func (FooStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
+	o := obj.(*Foo)
+	errors := field.ErrorList{}
+	specPath := field.NewPath("spec")
+	if len(o.Spec.Replicas) < 1 {
+		errors = append(errors, field.Invalid(specPath.Child("Replicas"), o.Spec.Replicas, "Replicas cannot be empty"))
+	}
+	return errors
+}
+
+
+func (FooStrategy) Canonicalize(obj runtime.Object) {
+	o := obj.(*Foo)
+	sort.Ints(o.Spec.Replicas)
+}

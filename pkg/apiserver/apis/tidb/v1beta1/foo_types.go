@@ -33,11 +33,20 @@ type Foo struct {
 
 // FooSpec defines the desired state of Foo
 type FooSpec struct {
-	Replicas[]    []int `json:"replicas,omitempty"`
+	Replicas      []int `json:"replicas,omitempty"`
 	ConfigMapName string `json:"string,omitempty"`
 }
 
 // FooStatus defines the observed state of Foo
 type FooStatus struct {
 	CurrentReplicas int `json:"currentReplicas,omitempty"`
+}
+
+// DefaultingFunction sets default Foo field values
+func (FooSchemeFns) DefaultingFunction(o interface{}) {
+	obj := o.(*Foo)
+	// set default field values here
+	if len(obj.Spec.Replicas) == 0 {
+		obj.Spec.Replicas = []int{1}
+	}
 }

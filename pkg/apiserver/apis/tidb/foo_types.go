@@ -11,41 +11,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package v1alpha1
+package tidb
 
-import(
+import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// Foo
-// +k8s:openapi-gen=true
-// +resource:path=foos,strategy=FooStrategy
 type Foo struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   FooSpec   `json:"spec,omitempty"`
-	Status FooStatus `json:"status,omitempty"`
+	metav1.TypeMeta
+	metav1.ObjectMeta
+	Spec   FooSpec
+	Status FooStatus
 }
 
-// FooSpec defines the desired state of Foo
-type FooSpec struct {
-	Replicas int `json:"replicas,omitempty"`
-}
-
-// FooStatus defines the observed state of Foo
 type FooStatus struct {
-	CurrentReplicas int `json:"currentReplicas,omitempty"`
+	CurrentReplicas int
 }
 
-// DefaultingFunction sets default Foo field values
-func (FooSchemeFns) DefaultingFunction(o interface{}) {
-	obj := o.(*Foo)
-	// set default field values here
-	if obj.Spec.Replicas == 0 {
-		obj.Spec.Replicas = 1
-	}
+type FooSpec struct {
+	Replicas      []int
+	ConfigMapName string
 }
