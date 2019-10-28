@@ -33,3 +33,4 @@ tests/e2e/e2e.test
 tkc
 
 apiserver.local.config/
+manifests/crd-verify.yaml

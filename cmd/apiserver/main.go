@@ -19,7 +19,6 @@ package main
 import (
 	_ "github.com/go-openapi/loads"
 	_ "github.com/ugorji/go/codec"
-	"k8s.io/client-go/rest"
 
 	"github.com/pingcap/tidb-operator/pkg/apiserver/cmd"
 	"github.com/pingcap/tidb-operator/pkg/version"
@@ -27,10 +26,5 @@ import (
 )
 
 func main() {
-	restConfig, err := rest.InClusterConfig()
-	if err != nil {
-		panic(err)
-	}
-
-	cmd.StartApiServer(restConfig, "default", nil, nil, "Api", version.Get().GitVersion)
+	cmd.StartApiServer(nil, nil, "Api", version.Get().GitVersion)
 }

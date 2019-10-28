@@ -57,9 +57,10 @@ type ServerOptions struct {
 
 	GetOpenApiDefinition openapi.GetOpenAPIDefinitions
 
-	RestConfig       *rest.Config
-	StorageNamespace string
-	Codec            runtime.Codec
+	RestConfig        *rest.Config
+	StorageNamespace  string
+	StorageKubeConfig string
+	Codec             runtime.Codec
 }
 
 type PostStartHook struct {
@@ -69,8 +70,6 @@ type PostStartHook struct {
 
 // StartApiServer starts an apiserver.
 func StartApiServer(
-	restConfig *rest.Config,
-	storageNamespace string,
 	apis []*builders.APIGroupBuilder,
 	openapidefs openapi.GetOpenAPIDefinitions,
 	title,
@@ -82,7 +81,7 @@ func StartApiServer(
 
 	signalCh := genericapiserver.SetupSignalHandler()
 	// To disable providers, manually specify the list provided by getKnownProviders()
-	cmd := NewCommandStartServer(restConfig, storageNamespace, apis, signalCh, title, version)
+	cmd := NewCommandStartServer(apis, signalCh, title, version)
 
 	cmd.Flags().AddFlagSet(pflag.CommandLine)
 	if err := cmd.Execute(); err != nil {
@@ -91,15 +90,20 @@ func StartApiServer(
 }
 
 // NewCommandStartServer create a cobra start server command
-func NewCommandStartServer(restConfig *rest.Config, storageNamespace string, builders []*builders.APIGroupBuilder,
-	stopCh <-chan struct{}, title, version string) *cobra.Command {
-	o := NewServerOptions(restConfig, storageNamespace, builders)
+func NewCommandStartServer(builders []*builders.APIGroupBuilder, stopCh <-chan struct{}, title, version string) *cobra.Command {
+	o := NewServerOptions(builders)
 
 	// Support overrides
 	cmd := &cobra.Command{
 		Short: "Launch an API server",
 		Long:  "Launch an API server",
 		RunE: func(c *cobra.Command, args []string) error {
+			if err := o.Complete(); err != nil {
+				return err
+			}
+			if err := o.Validate(); err != nil {
+				return err
+			}
 			return o.RunServer(stopCh, title, version)
 		},
 	}
@@ -109,6 +113,10 @@ func NewCommandStartServer(restConfig *rest.Config, storageNamespace string, bui
 		"Print a curl command with the bearer token to test the server")
 	flags.BoolVar(&o.RunDelegatedAuth, "delegated-auth", true,
 		"Setup delegated auth")
+	flags.StringVar(&o.StorageNamespace, "storage-namespace", "default",
+		"Kubernetes namespace that data stored to")
+	flags.StringVar(&o.StorageKubeConfig, "storage-kubeconfig", "",
+		"kubeconfig path used to build the client of kubernetes, use in-cluster config is not specified")
 	o.RecommendedOptions.AddFlags(flags)
 	o.InsecureServingOptions.AddFlags(flags)
 	feature.DefaultFeatureGate.AddFlag(flags)
@@ -129,7 +137,7 @@ func NewCommandStartServer(restConfig *rest.Config, storageNamespace string, bui
 }
 
 // NewServerOptions create a ServerOptions
-func NewServerOptions(restConfig *rest.Config, storageNamespace string, b []*builders.APIGroupBuilder) *ServerOptions {
+func NewServerOptions(b []*builders.APIGroupBuilder) *ServerOptions {
 	versions := []schema.GroupVersion{}
 	for _, b := range b {
 		versions = append(versions, b.GetLegacyCodec()...)
@@ -140,8 +148,6 @@ func NewServerOptions(restConfig *rest.Config, storageNamespace string, b []*bui
 		RecommendedOptions: genericoptions.NewRecommendedOptions("", codec),
 		APIBuilders:        b,
 		RunDelegatedAuth:   true,
-		RestConfig:         restConfig,
-		StorageNamespace:   storageNamespace,
 		Codec:              codec,
 	}
 	o.RecommendedOptions.SecureServing.BindPort = 443
@@ -217,6 +223,27 @@ func (o ServerOptions) Config() (*apiserver.Config, error) {
 	}
 
 	return config, nil
+}
+
+func (o *ServerOptions) Complete() error {
+	// If storageKubeConfig provided, use that in favor of local test
+	var err error
+	if o.StorageKubeConfig != "" {
+		o.RestConfig, err = clientcmd.BuildConfigFromFlags("", o.StorageKubeConfig)
+	} else {
+		o.RestConfig, err = rest.InClusterConfig()
+	}
+	return err
+}
+
+func (o *ServerOptions) Validate() error {
+	if o.StorageNamespace == "" {
+		return fmt.Errorf("Storage namespace must not be empty")
+	}
+	if o.RestConfig == nil {
+		return fmt.Errorf("Kubernetes rest client config must not be nil")
+	}
+	return nil
 }
 
 func (o *ServerOptions) RunServer(stopCh <-chan struct{}, title, version string) error {
