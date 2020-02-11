@@ -15,6 +15,7 @@ package member
 
 import (
 	"fmt"
+	"os/exec"
 	"reflect"
 	"regexp"
 	"strings"
@@ -192,6 +193,16 @@ func (tkmm *tikvMemberManager) syncStatefulSetForTidbCluster(tc *v1alpha1.TidbCl
 				return err
 			}
 		}
+
+		// HACK: use pd-recover to set PD cluster id before create tikv in favor of hibernate recover
+		pdEndpoint := fmt.Sprintf("http://%s-pd.%s.svc:2379", tc.Name, tc.Namespace)
+		cmd := fmt.Sprintf("pd-recover -endpoints %s -alloc-id 100000000 --cluster-id 6749777029235668314", pdEndpoint)
+		glog.Info(cmd)
+		if res, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
+			glog.Errorf("error calling pd-recover, %s", string(res))
+			return err
+		}
+
 		err = tkmm.setControl.CreateStatefulSet(tc, newSet)
 		if err != nil {
 			return err
@@ -354,6 +365,11 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 				Items: []corev1.KeyToPath{{Key: "startup-script", Path: "tikv_start_script.sh"}},
 			}},
 		},
+		{Name: "credentials", VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: "cloud-storage-secret",
+			}},
+		},
 	}
 	if tc.IsTLSClusterEnabled() {
 		vols = append(vols, corev1.Volume{
@@ -367,6 +383,40 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 
 	sysctls := "sysctl -w"
 	var initContainers []corev1.Container
+
+	// preload data
+	// TODO: move hard code param to spec
+	initContainers = append(initContainers, corev1.Container{
+		Name:  "preload",
+		Image: controller.TidbBackupManagerImage,
+		Env: []corev1.EnvVar{
+			{
+				Name: "POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
+					},
+				},
+			},
+		},
+		Command: []string{
+			"sh",
+			"-c",
+			`set -eu
+if [[ ! -f "/var/lib/tikv/LOCK" ]]; then
+    echo "init tikv data dir"
+    rclone --config /etc/rclone/rclone.conf sync s3://dbaas-hibernate/${POD_NAME} /var/lib/tikv
+else 
+    echo "data dir initialized, skip initialization"
+fi
+`,
+		},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: v1alpha1.TiKVMemberType.String(), MountPath: "/var/lib/tikv"},
+			{Name: "credentials", MountPath: "/etc/rclone"},
+		},
+	})
+
 	if baseTiKVSpec.Annotations() != nil {
 		init, ok := baseTiKVSpec.Annotations()[label.AnnSysctlInit]
 		if ok && (init == label.AnnSysctlInitVal) {
@@ -394,7 +444,7 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 	// cannot be enabled for kubelet, so clean the sysctl in statefulset
 	// SecurityContext if init container is enabled
 	podSecurityContext := baseTiKVSpec.PodSecurityContext().DeepCopy()
-	if len(initContainers) > 0 {
+	if len(initContainers) > 1 {
 		podSecurityContext.Sysctls = []corev1.Sysctl{}
 	}
 
