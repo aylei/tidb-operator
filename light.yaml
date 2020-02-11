@@ -1,0 +1,73 @@
+config: |
+  [lightning]
+  status-addr = ":8289"
+  server-mode = false
+  index-concurrency = 2
+  table-concurrency = 6
+  level = "info"
+  file = "tidb-lightning.log"
+  max-size = 128 # MB
+  max-days = 28
+  max-backups = 14
+  [checkpoint]
+  enable = true
+  schema = "tidb_lightning_checkpoint"
+  driver = "file"
+  [tikv-importer]
+  backend = "importer"
+  addr = "127.0.0.1:8287"
+  [mydumper]
+  read-block-size = 65536 # Byte (default = 64 KB)
+  batch-size = 107_374_182_400 # Byte (default = 100 GiB)
+  batch-import-ratio = 0.75
+  data-source-dir = "/tmp/export-20180328-200751"
+  no-schema=true
+  case-sensitive = false
+  [mydumper.csv]
+  separator = ','
+  delimiter = ''
+  header = false
+  not-null = false
+  null = 'NULL'
+  backslash-escape = true
+  trim-last-separator = false
+  [tidb]
+  host = "127.0.0.1"
+  port = 4000
+  user = "dbaas_root"
+  password = "2fb9eff3-76fa-4205-bd21-72f9f0236016"
+  status-port = 10080
+  pd-addr = "127.0.0.1:2379"
+  log-level = "error"
+  build-stats-concurrency = 20
+  distsql-scan-concurrency = 100
+  index-serial-scan-concurrency = 20
+  checksum-table-concurrency = 16
+  [post-restore]
+  checksum = true
+  level-1-compact = false
+  compact = false
+  analyze = true
+  [cron]
+  switch-mode = "5m"
+  log-progress = "5m"
+dataSource:
+  remote:
+    directory: s3:tpcc5000-split
+    secretName: cloud-storage-secret
+    storage: 500Gi
+    storageClassName: cloud-ssd
+failFast: false
+image: aylei/tidb-lightning:new-format
+nodeSelector:
+  kops.ig.name: tidb180001-tidb
+targetTidbCluster:
+  name: db
+  namespace: tidb180001
+  user: dbaas_root
+tolerations:
+- effect: NoSchedule
+  key: dedicated
+  operator: Equal
+  value: tidb-tidb
+

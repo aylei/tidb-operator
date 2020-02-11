@@ -1,0 +1,27 @@
+importer:
+  create: true
+  storageClassName: cloud-ssd
+  storage: 500Gi
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: "kops.ig.name"
+            operator: In
+            values:
+            - "tidb180001-tidb"
+  tolerations:
+  - effect: NoSchedule
+    key: dedicated
+    operator: Equal
+    value: tidb-tidb
+  config: |
+    log-level = "info"
+    [metric]
+    job = "tikv-importer"
+    interval = "15s"
+    address = "localhost:9091"
+    [import]
+    num-threads = 16
+    num-import-jobs = 24

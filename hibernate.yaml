@@ -1,0 +1,60 @@
+apiVersion: v1
+data:
+  values.yaml: |+
+    pd:
+      image: pingcap/pd@sha256:51a7560972bb1d4d3a04cc3139f44ccd9d3dcbddf185fc07eff708f1988c2f3e
+    tidb:
+      image: aylei/tidb:436f749d9adbc392f53774e557f710e3f264e949
+      config: |-
+        [log]
+        level = "info"
+        expensive-threshold = 10000000
+        [pessimistic-txn]
+        enable = true
+        [prepared-plan-cache]
+        enabled = true
+
+    tikv:
+      image: aylei/tikv:49606feefcbc14d068bd7475795259f85deea1e8
+      config: |-
+        [readpool.storage]
+        high-concurrency = 1
+        normal-concurrency = 4
+        low-concurrency = 1
+        [readpool.coprocessor]
+        low-concurrency = 1
+        normal-concurrency = 5
+        high-concurrency = 1
+        [storage]
+        scheduler-worker-pool-size = 3
+        [storage.block-cache]
+        shared = true
+        num-shard-bits = 6
+        strict-capacity-limit = false
+        high-pri-pool-ratio = 0.8
+        memory-allocator = "nodump"
+        [raftstore]
+        raftdb-path = ""
+        sync-log = true
+        [rocksdb]
+        max-background-jobs = 4
+        wal-dir = ""
+        enable-pipelined-write = false
+        enable-unordered-write = true
+        [raftdb]
+        max-background-jobs = 3
+        [server]
+        request-batch-enable-cross-command = false
+        end-point-max-concurrency = 10
+        [readpool]
+        unify-read-pool = true
+        [readpool.unified]
+        min-thread-count = 5
+        max-thread-count = 10
+
+kind: ConfigMap
+metadata:
+  labels:
+    tag: test
+  name: bench-conf-profile
+  namespace: operations
