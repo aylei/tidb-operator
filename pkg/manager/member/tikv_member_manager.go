@@ -201,7 +201,7 @@ func (tkmm *tikvMemberManager) syncStatefulSetForTidbCluster(tc *v1alpha1.TidbCl
 		if _, ok := tc.Spec.PD.Annotations["restartedAfterRecover"]; !ok {
 			// HACK: use pd-recover to set PD cluster id before create tikv in favor of hibernate recover
 			pdEndpoint := fmt.Sprintf("http://%s-pd.%s.svc:2379", tc.Name, tc.Namespace)
-			cmd := fmt.Sprintf("pd-recover -endpoints %s -alloc-id 100000000 -cluster-id 6791834115698696712", pdEndpoint)
+			cmd := fmt.Sprintf("pd-recover -endpoints %s -alloc-id 100000000 -cluster-id 6792413928236266519", pdEndpoint)
 			glog.Info(cmd)
 			if res, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
 				glog.Errorf("error calling pd-recover, %s", string(res))
@@ -415,7 +415,7 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 			`set -eu
 if [[ ! -f "/var/lib/tikv/LOCK" ]]; then
     echo "init tikv data dir"
-    rclone --config /etc/rclone/rclone.conf sync s3://dbaas-hibernate/${POD_NAME} /var/lib/tikv
+    rclone --config /etc/rclone/rclone.conf sync s3://dbaas-rawdata/${POD_NAME} /var/lib/tikv
 else 
     echo "data dir initialized, skip initialization"
 fi
