@@ -35,7 +35,7 @@ config: |
   host = "127.0.0.1"
   port = 4000
   user = "dbaas_root"
-  password = "2fb9eff3-76fa-4205-bd21-72f9f0236016"
+  password = "cd2402a7-78a0-451a-8f45-d4e800a7b354"
   status-port = 10080
   pd-addr = "127.0.0.1:2379"
   log-level = "error"

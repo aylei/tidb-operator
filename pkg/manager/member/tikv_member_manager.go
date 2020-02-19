@@ -348,6 +348,7 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 	volMounts := []corev1.VolumeMount{
 		annMount,
 		{Name: v1alpha1.TiKVMemberType.String(), MountPath: "/var/lib/tikv"},
+		{Name: v1alpha1.TiKVMemberType.String() + "-raft", MountPath: "/var/lib/tikv-raft"},
 		{Name: "config", ReadOnly: true, MountPath: "/etc/tikv"},
 		{Name: "startup-script", ReadOnly: true, MountPath: "/usr/local/bin"},
 	}
@@ -416,6 +417,8 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 if [[ ! -f "/var/lib/tikv/LOCK" ]]; then
     echo "init tikv data dir"
     rclone --config /etc/rclone/rclone.conf sync s3://dbaas-rawdata/${POD_NAME} /var/lib/tikv
+    echo "move raftstore to separate disk"
+    mv /var/lib/tikv/raft /var/lib/tikv-raft/raft
 else 
     echo "data dir initialized, skip initialization"
 fi
@@ -423,6 +426,7 @@ fi
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: v1alpha1.TiKVMemberType.String(), MountPath: "/var/lib/tikv"},
+			{Name: v1alpha1.TiKVMemberType.String() + "-raft", MountPath: "/var/lib/tikv-raft"},
 			{Name: "credentials", MountPath: "/etc/rclone"},
 		},
 	})
@@ -552,6 +556,7 @@ fi
 			},
 			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
 				volumeClaimTemplate(storageRequest, v1alpha1.TiKVMemberType.String(), tc.Spec.TiKV.StorageClassName),
+				volumeClaimTemplate(storageRequest, v1alpha1.TiKVMemberType.String() + "-raft", tc.Spec.TiKV.StorageClassName),
 			},
 			ServiceName:         headlessSvcName,
 			PodManagementPolicy: apps.ParallelPodManagement,

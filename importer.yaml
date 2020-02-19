@@ -10,7 +10,7 @@ importer:
           - key: "kops.ig.name"
             operator: In
             values:
-            - "tidb180001-tidb"
+            - "tidb180040-tidb"
   tolerations:
   - effect: NoSchedule
     key: dedicated
