@@ -462,6 +462,7 @@ if [[ ! -f "/var/lib/tikv/LOCK" ]]; then
     rclone --config /etc/rclone/rclone.conf sync s3://` + s3Path + `/${POD_NAME} /var/lib/tikv
     echo "move raftstore to separate disk"
     if [[ ! -z ${EXTRA_VOLUME+guard} ]]; then
+        rm /var/lib/tikv/last_tikv.toml
 		mv /var/lib/tikv/raft /var/lib/tikv-raft/raft
     fi
 else 
