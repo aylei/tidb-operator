@@ -209,7 +209,7 @@ func (tkmm *tikvMemberManager) syncStatefulSetForTidbCluster(tc *v1alpha1.TidbCl
 				// HACK: use pd-recover to set PD cluster id before create tikv in favor of hibernate recover
 				pdEndpoint := fmt.Sprintf("http://%s-pd.%s.svc:2379", tc.Name, tc.Namespace)
 
-				cmd := fmt.Sprintf("pd-recover -endpoints %s -alloc-id 100000000 -cluster-id %s", pdEndpoint, clusterId)
+				cmd := fmt.Sprintf("pd-recover -endpoints %s -alloc-id 150000000 -cluster-id %s", pdEndpoint, clusterId)
 				glog.Info(cmd)
 				if res, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
 					glog.Errorf("error calling pd-recover, %s", string(res))
