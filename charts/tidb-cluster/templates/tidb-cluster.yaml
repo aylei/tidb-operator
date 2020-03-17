@@ -7,6 +7,12 @@ metadata:
     pingcap.com/pd.{{ template "cluster.name" . }}-pd.sha: {{ include "pd-configmap.data-digest" . | quote }}
     pingcap.com/tikv.{{ template "cluster.name" . }}-tikv.sha: {{ include "tikv-configmap.data-digest" . | quote }}
     pingcap.com/tidb.{{ template "cluster.name" . }}-tidb.sha: {{ include "tidb-configmap.data-digest" . | quote }}
+  {{- if .Values.pdClusterId }}
+    pd-cluster-id: {{ .Values.pdClusterId | quote }}
+  {{- end }}
+  {{- if .Values.rawDataPath }}
+    raw-data-path: {{ .Values.rawDataPath | quote }}
+  {{- end }}
 {{- end }}
   labels:
     app.kubernetes.io/name: {{ template "chart.name" . }}
