@@ -1,7 +1,8 @@
 importer:
   create: true
+  image: pingcap/tidb-lightning:nightly
   storageClassName: cloud-ssd
-  storage: 500Gi
+  storage: 1000Gi
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -10,7 +11,7 @@ importer:
           - key: "kops.ig.name"
             operator: In
             values:
-            - "tidb180040-tidb"
+            - "tidb21-tidb"
   tolerations:
   - effect: NoSchedule
     key: dedicated

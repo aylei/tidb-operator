@@ -17,6 +17,7 @@ config: |
   backend = "importer"
   addr = "127.0.0.1:8287"
   [mydumper]
+  strict-format=true
   read-block-size = 65536 # Byte (default = 64 KB)
   batch-size = 107_374_182_400 # Byte (default = 100 GiB)
   batch-import-ratio = 0.75
@@ -34,8 +35,8 @@ config: |
   [tidb]
   host = "127.0.0.1"
   port = 4000
-  user = "dbaas_root"
-  password = "cd2402a7-78a0-451a-8f45-d4e800a7b354"
+  user = "root"
+  password = ""
   status-port = 10080
   pd-addr = "127.0.0.1:2379"
   log-level = "error"
@@ -53,17 +54,17 @@ config: |
   log-progress = "5m"
 dataSource:
   remote:
-    directory: s3:tpcc5000-split
+    directory: s3:tpcc10k
     secretName: cloud-storage-secret
-    storage: 500Gi
+    storage: 1000Gi
     storageClassName: cloud-ssd
 failFast: false
-image: aylei/tidb-lightning:new-format
+image: aylei/tidb-lightning:0331
 nodeSelector:
-  kops.ig.name: tidb180001-tidb
+  kops.ig.name: tidb21-tidb
 targetTidbCluster:
   name: db
-  namespace: tidb180001
+  namespace: tidb21
   user: dbaas_root
 tolerations:
 - effect: NoSchedule
