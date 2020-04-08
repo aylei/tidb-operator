@@ -25,4 +25,4 @@ importer:
     address = "localhost:9091"
     [import]
     num-threads = 16
-    num-import-jobs = 24
+    num-import-jobs = 14
