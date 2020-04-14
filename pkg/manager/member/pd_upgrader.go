@@ -16,7 +16,6 @@ package member
 import (
 	"fmt"
 
-	"github.com/pingcap/advanced-statefulset/pkg/apis/apps/v1/helper"
 	"github.com/pingcap/tidb-operator/pkg/apis/pingcap/v1alpha1"
 	"github.com/pingcap/tidb-operator/pkg/controller"
 	"github.com/pingcap/tidb-operator/pkg/pdapi"
@@ -72,35 +71,33 @@ func (pu *pdUpgrader) gracefulUpgrade(tc *v1alpha1.TidbCluster, oldSet *apps.Sta
 		return nil
 	}
 
-	if controller.PodWebhookEnabled {
-		setUpgradePartition(newSet, 0)
-		return nil
-	}
+	// HACK: pd recover cannot be gracefully upgrade, bypass grace
+	setUpgradePartition(newSet, 0)
 
-	setUpgradePartition(newSet, *oldSet.Spec.UpdateStrategy.RollingUpdate.Partition)
-	podOrdinals := helper.GetPodOrdinals(*oldSet.Spec.Replicas, oldSet).List()
-	for _i := len(podOrdinals) - 1; _i >= 0; _i-- {
-		i := podOrdinals[_i]
-		podName := PdPodName(tcName, i)
-		pod, err := pu.podLister.Pods(ns).Get(podName)
-		if err != nil {
-			return err
-		}
-
-		revision, exist := pod.Labels[apps.ControllerRevisionHashLabelKey]
-		if !exist {
-			return controller.RequeueErrorf("tidbcluster: [%s/%s]'s pd pod: [%s] has no label: %s", ns, tcName, podName, apps.ControllerRevisionHashLabelKey)
-		}
-
-		if revision == tc.Status.PD.StatefulSet.UpdateRevision {
-			if member, exist := tc.Status.PD.Members[podName]; !exist || !member.Health {
-				return controller.RequeueErrorf("tidbcluster: [%s/%s]'s pd upgraded pod: [%s] is not ready", ns, tcName, podName)
-			}
-			continue
-		}
-
-		return pu.upgradePDPod(tc, i, newSet)
-	}
+	//setUpgradePartition(newSet, *oldSet.Spec.UpdateStrategy.RollingUpdate.Partition)
+	//podOrdinals := helper.GetPodOrdinals(*oldSet.Spec.Replicas, oldSet).List()
+	//for _i := len(podOrdinals) - 1; _i >= 0; _i-- {
+	//	i := podOrdinals[_i]
+	//	podName := PdPodName(tcName, i)
+	//	pod, err := pu.podLister.Pods(ns).Get(podName)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	revision, exist := pod.Labels[apps.ControllerRevisionHashLabelKey]
+	//	if !exist {
+	//		return controller.RequeueErrorf("tidbcluster: [%s/%s]'s pd pod: [%s] has no label: %s", ns, tcName, podName, apps.ControllerRevisionHashLabelKey)
+	//	}
+	//
+	//	if revision == tc.Status.PD.StatefulSet.UpdateRevision {
+	//		if member, exist := tc.Status.PD.Members[podName]; !exist || !member.Health {
+	//			return controller.RequeueErrorf("tidbcluster: [%s/%s]'s pd upgraded pod: [%s] is not ready", ns, tcName, podName)
+	//		}
+	//		continue
+	//	}
+	//
+	//	return pu.upgradePDPod(tc, i, newSet)
+	//}
 
 	return nil
 }

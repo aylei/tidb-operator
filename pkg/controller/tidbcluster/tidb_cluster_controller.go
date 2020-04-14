@@ -146,6 +146,7 @@ func NewController(
 				svcInformer.Lister(),
 				podInformer.Lister(),
 				nodeInformer.Lister(),
+				kubeCli,
 				autoFailover,
 				tikvFailover,
 				tikvScaler,

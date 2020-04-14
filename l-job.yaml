@@ -1,0 +1,118 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/component: tidb-lightning
+    app.kubernetes.io/instance: db
+    app.kubernetes.io/managed-by: Tiller
+    app.kubernetes.io/name: lightning-tidb-lightning
+    helm.sh/chart: tidb-lightning-dev
+  name: lightning-tidb-lightning
+  namespace: tidb21
+spec:
+  backoffLimit: 0
+  completions: 1
+  parallelism: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8289"
+        prometheus.io/scrape: "true"
+      creationTimestamp: null
+      labels:
+        app.kubernetes.io/component: tidb-lightning
+        app.kubernetes.io/instance: db
+        app.kubernetes.io/name: lightning-tidb-lightning
+        job-name: lightning-tidb-lightning
+    spec:
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          data_dir=/var/lib/tidb-lightning
+          if [ -z "$(ls -A ${data_dir})" ]; then
+              if [ ! -z ${FAIL_FAST} ]; then
+                  exit 1
+              else
+                  echo "No files in data dir, please exec into my container to diagnose"
+                  tail -f /dev/null
+              fi
+          fi
+          /tidb-lightning \
+              --pd-urls=db-pd.tidb21:2379 \
+              --status-addr=0.0.0.0:8289 \
+              --importer=db-importer.tidb21:8287 \
+              --server-mode=false \
+              --tidb-user=root \
+              --tidb-host=db-tidb.tidb21 \
+              --d=${data_dir} \
+              --config=/etc/tidb-lightning/tidb-lightning.toml
+
+          if [ $? != 0 ]; then
+              if [ ! -z ${FAIL_FAST} ]; then
+                  exit 1
+              else
+                  echo $(date -u +"[%Y/%m/%d %H:%M:%S.%3N %:z]") "tidb-lightning exits abnormally, please exec into my container to do manual intervention"
+                  tail -f /dev/null
+              fi
+          fi
+        image: aylei/tidb-lightning:0331
+        imagePullPolicy: IfNotPresent
+        name: tidb-lightning
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/tidb-lightning
+          name: config
+        - mountPath: /var/lib/tidb-lightning
+          name: data
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - /bin/sh
+        - -c
+        - |
+          set -euo pipefail
+
+          # rclone sync skip identical files automatically
+          rclone --config /etc/rclone/rclone.conf sync -P s3:tpcc10k /data
+        image: pingcap/tidb-cloud-backup:20200229
+        imagePullPolicy: IfNotPresent
+        name: data-retriever
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/rclone
+          name: credentials
+        - mountPath: /data
+          name: data
+      nodeSelector:
+        kops.ig.name: tidb21-tidb
+      restartPolicy: Never
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        key: dedicated
+        operator: Equal
+        value: tidb-tidb
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config-file
+            path: tidb-lightning.toml
+          name: lightning-tidb-lightning-07a522d5
+        name: config
+      - name: credentials
+        secret:
+          defaultMode: 420
+          secretName: cloud-storage-secret
+      - name: data
+        persistentVolumeClaim:
+          claimName: lightning-tidb-lightning

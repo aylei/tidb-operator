@@ -2,6 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# pdClusterId: 1
+# rawDataPath: x
+
 # Also see monitor.serviceAccount
 # If you set rbac.create to false, you need to provide a value for monitor.serviceAccount
 rbac:

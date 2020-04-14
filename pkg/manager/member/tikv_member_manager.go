@@ -15,6 +15,8 @@ package member
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os/exec"
 	"path"
 	"reflect"
 	"regexp"
@@ -33,6 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/apps/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
@@ -57,6 +60,7 @@ type tikvMemberManager struct {
 	svcLister                    corelisters.ServiceLister
 	podLister                    corelisters.PodLister
 	nodeLister                   corelisters.NodeLister
+	kubeCli                      kubernetes.Interface
 	autoFailover                 bool
 	tikvFailover                 Failover
 	tikvScaler                   Scaler
@@ -75,6 +79,7 @@ func NewTiKVMemberManager(
 	svcLister corelisters.ServiceLister,
 	podLister corelisters.PodLister,
 	nodeLister corelisters.NodeLister,
+	kubeCli kubernetes.Interface,
 	autoFailover bool,
 	tikvFailover Failover,
 	tikvScaler Scaler,
@@ -89,6 +94,7 @@ func NewTiKVMemberManager(
 		typedControl: typedControl,
 		setLister:    setLister,
 		svcLister:    svcLister,
+		kubeCli:      kubeCli,
 		autoFailover: autoFailover,
 		tikvFailover: tikvFailover,
 		tikvScaler:   tikvScaler,
@@ -212,6 +218,73 @@ func (tkmm *tikvMemberManager) syncStatefulSetForTidbCluster(tc *v1alpha1.TidbCl
 		if err != nil {
 			return err
 		}
+
+		clusterId := ""
+		if tc.Annotations != nil {
+			if v, ok := tc.Annotations["pd-cluster-id"]; ok {
+				clusterId = v
+			}
+		}
+		if clusterId != "" {
+			// HACK: restart PDs to apply new cluster-id
+			if tc.Spec.PD.Annotations == nil {
+				tc.Spec.PD.Annotations = map[string]string{}
+			}
+			if _, ok := tc.Spec.PD.Annotations["restartedAfterRecover"]; !ok {
+				// HACK: use pd-recover to set PD cluster id before create tikv in favor of hibernate recover
+				pdEndpoint := fmt.Sprintf("http://%s-pd.%s.svc:2379", tc.Name, tc.Namespace)
+
+				cmd := fmt.Sprintf("pd-recover -endpoints %s -alloc-id 150000000 -cluster-id %s", pdEndpoint, clusterId)
+				if tc.IsTLSClusterEnabled() {
+					secretName := util.ClusterClientTLSSecretName(tcName)
+					secret, err := tkmm.kubeCli.CoreV1().Secrets(string(tc.Namespace)).Get(secretName, metav1.GetOptions{})
+					if err != nil {
+						return fmt.Errorf("unable to load certificates from secret %s/%s: %v", tc.Namespace, secretName, err)
+					}
+					cacert := secret.Data[corev1.ServiceAccountRootCAKey]
+					clientCert, certExists := secret.Data[corev1.TLSCertKey]
+					clientKey, keyExists := secret.Data[corev1.TLSPrivateKeyKey]
+					if !certExists || !keyExists {
+						return fmt.Errorf("cert or key does not exist in secret %s/%s", tc.Namespace, secretName)
+					}
+					cacertFile, err := ioutil.TempFile("", "cacert")
+					if err != nil {
+						return err
+					}
+					_, err = cacertFile.Write(cacert)
+					if err != nil {
+						return err
+					}
+					certFile, err := ioutil.TempFile("", "cert")
+					if err != nil {
+						return err
+					}
+					_, err = certFile.Write(clientCert)
+					if err != nil {
+						return err
+					}
+					keyFile, err := ioutil.TempFile("", "key")
+					if err != nil {
+						return err
+					}
+					_, err = certFile.Write(clientKey)
+					if err != nil {
+						return err
+					}
+					cmd = cmd + fmt.Sprintf(" -cacert %s -cert %s -key %s", cacertFile.Name(), certFile.Name(), keyFile.Name())
+				}
+				klog.Info(cmd)
+				if res, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
+					klog.Errorf("error calling pd-recover, %s", string(res))
+					return err
+				} else {
+					klog.Info(string(res))
+				}
+				tc.Spec.PD.Annotations["restartedAfterRecover"] = "y"
+				return controller.RequeueErrorf("PD recovered, waiting to restart")
+			}
+		}
+
 		err = tkmm.setControl.CreateStatefulSet(tc, newSet)
 		if err != nil {
 			return err
@@ -311,12 +384,22 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 		tikvConfigMap = cm.Name
 	}
 
+	extraVolume := false
+	if tc.Annotations != nil {
+		if _, ok := tc.Annotations["extra-volume"]; ok {
+			extraVolume = true
+		}
+	}
+
 	annMount, annVolume := annotationsMountVolume()
 	volMounts := []corev1.VolumeMount{
 		annMount,
 		{Name: v1alpha1.TiKVMemberType.String(), MountPath: "/var/lib/tikv"},
 		{Name: "config", ReadOnly: true, MountPath: "/etc/tikv"},
 		{Name: "startup-script", ReadOnly: true, MountPath: "/usr/local/bin"},
+	}
+	if extraVolume {
+		volMounts = append(volMounts, corev1.VolumeMount{Name: v1alpha1.TiKVMemberType.String() + "-raft", MountPath: "/var/lib/tikv-raft"})
 	}
 	if tc.IsTLSClusterEnabled() {
 		volMounts = append(volMounts, corev1.VolumeMount{
@@ -342,6 +425,11 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 				Items: []corev1.KeyToPath{{Key: "startup-script", Path: "tikv_start_script.sh"}},
 			}},
 		},
+		{Name: "credentials", VolumeSource: corev1.VolumeSource{
+			Secret: &corev1.SecretVolumeSource{
+				SecretName: "cloud-storage-secret",
+			}},
+		},
 	}
 	if tc.IsTLSClusterEnabled() {
 		vols = append(vols, corev1.Volume{
@@ -355,6 +443,68 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 
 	sysctls := "sysctl -w"
 	var initContainers []corev1.Container
+
+	s3Path := "dbaas_rawdata"
+	if tc.Annotations != nil {
+		if v, ok := tc.Annotations["raw-data-path"]; ok {
+			s3Path = v
+		}
+	}
+
+	initMounts := []corev1.VolumeMount{
+		{Name: v1alpha1.TiKVMemberType.String(), MountPath: "/var/lib/tikv"},
+		{Name: "credentials", MountPath: "/etc/rclone"},
+	}
+	if extraVolume {
+		initMounts = append(initMounts, corev1.VolumeMount{Name: v1alpha1.TiKVMemberType.String() + "-raft", MountPath: "/var/lib/tikv-raft"})
+	}
+	initEnv := []corev1.EnvVar{
+		{
+			Name: "POD_NAME",
+			ValueFrom: &corev1.EnvVarSource{
+				FieldRef: &corev1.ObjectFieldSelector{
+					FieldPath: "metadata.name",
+				},
+			},
+		},
+	}
+	if extraVolume {
+		initEnv = append(initEnv, corev1.EnvVar{Name: "EXTRA_VOLUME", Value: "y"})
+	}
+	clusterId := ""
+	if tc.Annotations != nil {
+		if v, ok := tc.Annotations["pd-cluster-id"]; ok {
+			clusterId = v
+		}
+	}
+	if clusterId != "" {
+		// preload data
+		// TODO: move hard code param to spec
+		initContainers = append(initContainers, corev1.Container{
+			Name:  "preload",
+			Image: controller.TidbBackupManagerImage,
+			Env:   initEnv,
+			Command: []string{
+				"/bin/sh",
+				"-c",
+				`set -eu
+if [[ ! -f "/var/lib/tikv/LOCK" ]]; then
+    echo "init tikv data dir"
+    rclone --config /etc/rclone/rclone.conf sync s3://` + s3Path + `/${POD_NAME} /var/lib/tikv
+    echo "move raftstore to separate disk"
+    if [[ ! -z ${EXTRA_VOLUME+guard} ]]; then
+        rm /var/lib/tikv/last_tikv.toml
+		mv /var/lib/tikv/raft /var/lib/tikv-raft/raft
+    fi
+else 
+    echo "data dir initialized, skip initialization"
+fi
+`,
+			},
+			VolumeMounts: initMounts,
+		})
+	}
+
 	if baseTiKVSpec.Annotations() != nil {
 		init, ok := baseTiKVSpec.Annotations()[label.AnnSysctlInit]
 		if ok && (init == label.AnnSysctlInitVal) {
@@ -382,7 +532,7 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 	// cannot be enabled for kubelet, so clean the sysctl in statefulset
 	// SecurityContext if init container is enabled
 	podSecurityContext := baseTiKVSpec.PodSecurityContext().DeepCopy()
-	if len(initContainers) > 0 {
+	if len(initContainers) > 1 {
 		podSecurityContext.Sysctls = []corev1.Sysctl{}
 	}
 
@@ -461,6 +611,12 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 	podSpec.Containers = []corev1.Container{tikvContainer}
 	podSpec.ServiceAccountName = tc.Spec.TiKV.ServiceAccount
 
+	kvsetClaim := []corev1.PersistentVolumeClaim{
+		volumeClaimTemplate(storageRequest, v1alpha1.TiKVMemberType.String(), tc.Spec.TiKV.StorageClassName),
+	}
+	if extraVolume {
+		kvsetClaim = append(kvsetClaim, volumeClaimTemplate(storageRequest, v1alpha1.TiKVMemberType.String()+"-raft", tc.Spec.TiKV.StorageClassName))
+	}
 	tikvset := &apps.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            setName,
@@ -479,11 +635,9 @@ func getNewTiKVSetForTidbCluster(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap)
 				},
 				Spec: podSpec,
 			},
-			VolumeClaimTemplates: []corev1.PersistentVolumeClaim{
-				volumeClaimTemplate(storageRequest, v1alpha1.TiKVMemberType.String(), tc.Spec.TiKV.StorageClassName),
-			},
-			ServiceName:         headlessSvcName,
-			PodManagementPolicy: apps.ParallelPodManagement,
+			VolumeClaimTemplates: kvsetClaim,
+			ServiceName:          headlessSvcName,
+			PodManagementPolicy:  apps.ParallelPodManagement,
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 				RollingUpdate: &apps.RollingUpdateStatefulSetStrategy{
