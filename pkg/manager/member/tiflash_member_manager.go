@@ -518,7 +518,7 @@ func getNewStatefulSet(tc *v1alpha1.TidbCluster, cm *corev1.ConfigMap) (*apps.St
 			UpdateStrategy: apps.StatefulSetUpdateStrategy{
 				Type: apps.RollingUpdateStatefulSetStrategyType,
 				RollingUpdate: &apps.RollingUpdateStatefulSetStrategy{
-					Partition: controller.Int32Ptr(tc.TiFlashStsDesiredReplicas()),
+					Partition: controller.Int32Ptr(0),
 				},
 			},
 		},
