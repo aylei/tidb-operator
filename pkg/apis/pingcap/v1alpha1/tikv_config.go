@@ -53,6 +53,14 @@ type TiKVConfig struct {
 	Security *TiKVSecurityConfig `json:"security,omitempty" toml:"security,omitempty"`
 	// +optional
 	Encryption *TiKVEncryptionConfig `json:"encryption,omitempty" toml:"encryption,omitempty"`
+	// +optional
+	PessimisticTxn *TiKVPessimisticTxnConfig `json:"pessimistic-txn,omitempty" toml:"pessimistic-txn,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+type TiKVPessimisticTxnConfig struct {
+	// +optional
+	Pipelined *bool `json:"pipelined,omitempty" toml:"pipelined,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -61,7 +69,18 @@ type TiKVReadPoolConfig struct {
 	Coprocessor *TiKVCoprocessorReadPoolConfig `json:"coprocessor,omitempty" toml:"coprocessor,omitempty"`
 	// +optional
 	Storage *TiKVStorageReadPoolConfig `json:"storage,omitempty" toml:"storage,omitempty"`
+	// +optional
+	Unified *TiKVUnifiedReadPoolConfig `json:"unified,omitempty" toml:"unified,omitempty"`
 }
+
+// +k8s:openapi-gen=true
+type TiKVUnifiedReadPoolConfig struct {
+	// +optional
+	MinThreadCount *int64 `json:"min-thread-count,omitempty" toml:"min-thread-count,omitempty"`
+	// +optional
+	MaxThreadCount *int64 `json:"max-thread-count,omitempty" toml:"max-thread-count,omitempty"`
+}
+
 
 // +k8s:openapi-gen=true
 type TiKVStorageReadPoolConfig struct {
@@ -86,6 +105,8 @@ type TiKVStorageReadPoolConfig struct {
 	// Optional: Defaults to 10MB
 	// +optional
 	StackSize string `json:"stack-size,omitempty" toml:"stack-size,omitempty"`
+	// +optional
+	UseUnifiedPool *int64 `json:"use-unified-pool,omitempty" toml:"use-unified-pool,omitempty"`
 }
 
 // +k8s:openapi-gen=true
@@ -528,6 +549,8 @@ type TiKVServerConfig struct {
 	HeavyLoadWaitDuration string `json:"heavy-load-wait-duration,omitempty" toml:"heavy-load-wait-duration,omitempty"`
 	// +optional
 	Labels map[string]string `json:"labels,omitempty" toml:"labels,omitempty"`
+	// +optional
+	RequestBatchEnableCrossCommand *bool `json:"request-batch-enable-cross-command,omitempty" toml:"request-batch-enable-cross-command,omitempty"`
 }
 
 // TiKVRaftstoreConfig is the configuration of TiKV raftstore component.
