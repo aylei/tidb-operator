@@ -6239,11 +6239,11 @@ spec:
                       type: object
                     gc:
                       properties:
-                        "\tbatch-keys":
+                        batch-keys:
                           description: 'Optional: Defaults to 512'
                           format: int64
                           type: integer
-                        "\tmax-write-bytes-per-sec":
+                        max-write-bytes-per-sec:
                           type: string
                       type: object
                     import:
@@ -6312,6 +6312,11 @@ spec:
                             Default is isize::MAX, represented by -1. Optional: Defaults to -1
                           format: int64
                           type: integer
+                      type: object
+                    pessimistic-txn:
+                      properties:
+                        pipelined:
+                          type: boolean
                       type: object
                     raftdb:
                       properties:
@@ -6712,6 +6717,18 @@ spec:
                             stack-size:
                               description: 'Optional: Defaults to 10MB'
                               type: string
+                            use-unified-pool:
+                              format: int64
+                              type: integer
+                          type: object
+                        unified:
+                          properties:
+                            max-thread-count:
+                              format: int64
+                              type: integer
+                            min-thread-count:
+                              format: int64
+                              type: integer
                           type: object
                       type: object
                     rocksdb:
@@ -7313,6 +7330,8 @@ spec:
                           type: string
                         labels:
                           type: object
+                        request-batch-enable-cross-command:
+                          type: boolean
                         snap-max-total-size:
                           type: string
                         snap-max-write-bytes-per-sec:
