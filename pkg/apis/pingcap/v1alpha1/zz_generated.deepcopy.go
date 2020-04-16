@@ -4794,7 +4794,7 @@ func (in *TiKVStorageReadPoolConfig) DeepCopyInto(out *TiKVStorageReadPoolConfig
 	}
 	if in.UseUnifiedPool != nil {
 		in, out := &in.UseUnifiedPool, &out.UseUnifiedPool
-		*out = new(int64)
+		*out = new(bool)
 		**out = **in
 	}
 	return

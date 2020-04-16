@@ -106,7 +106,7 @@ type TiKVStorageReadPoolConfig struct {
 	// +optional
 	StackSize string `json:"stack-size,omitempty" toml:"stack-size,omitempty"`
 	// +optional
-	UseUnifiedPool *int64 `json:"use-unified-pool,omitempty" toml:"use-unified-pool,omitempty"`
+	UseUnifiedPool *bool `json:"use-unified-pool,omitempty" toml:"use-unified-pool,omitempty"`
 }
 
 // +k8s:openapi-gen=true

@@ -9995,6 +9995,19 @@ TiKVEncryptionConfig
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>pessimistic-txn</code></br>
+<em>
+<a href="#pingcap.com/v1alpha1.TiKVPessimisticTxnConfig">
+TiKVPessimisticTxnConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="pingcap.com/v1alpha1.TiKVCoprocessorConfig">TiKVCoprocessorConfig
@@ -10705,7 +10718,7 @@ Kubernetes meta/v1.Time
 <tbody>
 <tr>
 <td>
-<code>	batch-keys</code></br>
+<code>batch-keys</code></br>
 <em>
 int64
 </em>
@@ -10717,7 +10730,7 @@ int64
 </tr>
 <tr>
 <td>
-<code>	max-write-bytes-per-sec</code></br>
+<code>max-write-bytes-per-sec</code></br>
 <em>
 string
 </em>
@@ -10980,6 +10993,35 @@ int64
 every <code>n</code> times.</p>
 <p>Default is 10. Set to 1 to disable this feature.
 Optional: Defaults to 10</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pingcap.com/v1alpha1.TiKVPessimisticTxnConfig">TiKVPessimisticTxnConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#pingcap.com/v1alpha1.TiKVConfig">TiKVConfig</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>pipelined</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
@@ -11900,6 +11942,19 @@ TiKVStorageReadPoolConfig
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>unified</code></br>
+<em>
+<a href="#pingcap.com/v1alpha1.TiKVUnifiedReadPoolConfig">
+TiKVUnifiedReadPoolConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="pingcap.com/v1alpha1.TiKVSecurityConfig">TiKVSecurityConfig
@@ -12265,6 +12320,17 @@ string
 <code>labels</code></br>
 <em>
 map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>request-batch-enable-cross-command</code></br>
+<em>
+bool
 </em>
 </td>
 <td>
@@ -12700,6 +12766,17 @@ string
 <p>Optional: Defaults to 10MB</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>use-unified-pool</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="pingcap.com/v1alpha1.TiKVStore">TiKVStore
@@ -12986,6 +13063,46 @@ string
 <td>
 <em>(Optional)</em>
 <p>The value of this field will be truncated to seconds.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="pingcap.com/v1alpha1.TiKVUnifiedReadPoolConfig">TiKVUnifiedReadPoolConfig
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#pingcap.com/v1alpha1.TiKVReadPoolConfig">TiKVReadPoolConfig</a>)
+</p>
+<p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>min-thread-count</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>max-thread-count</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
