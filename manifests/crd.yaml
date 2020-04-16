@@ -6718,8 +6718,7 @@ spec:
                               description: 'Optional: Defaults to 10MB'
                               type: string
                             use-unified-pool:
-                              format: int64
-                              type: integer
+                              type: boolean
                           type: object
                         unified:
                           properties:

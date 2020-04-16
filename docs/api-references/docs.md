@@ -12770,7 +12770,7 @@ string
 <td>
 <code>use-unified-pool</code></br>
 <em>
-int64
+bool
 </em>
 </td>
 <td>

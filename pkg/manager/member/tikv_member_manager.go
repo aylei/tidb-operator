@@ -267,7 +267,7 @@ func (tkmm *tikvMemberManager) syncStatefulSetForTidbCluster(tc *v1alpha1.TidbCl
 					if err != nil {
 						return err
 					}
-					_, err = certFile.Write(clientKey)
+					_, err = keyFile.Write(clientKey)
 					if err != nil {
 						return err
 					}
