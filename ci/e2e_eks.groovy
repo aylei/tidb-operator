@@ -31,6 +31,11 @@ spec:
       requests:
         memory: "4000Mi"
         cpu: 2000m
+        ephemeral-storage: "20Gi"
+      limits:
+        memory: "4000Mi"
+        cpu: 2000m
+        ephemeral-storage: "20Gi"
     volumeMounts:
     # dind expects /var/lib/docker to be volume
     - name: docker-root
@@ -152,6 +157,13 @@ pipeline {
                 archiveArtifacts artifacts: "**", allowEmptyArchive: true
                 junit testResults: "*.xml", allowEmptyResults: true
             }
+        }
+        failure {
+            sh """
+            export CLUSTER=${params.CLUSTER}
+            echo "info: cleaning eks cluster \$CLUSTER"
+            ./ci/aws-clean-eks.sh \$CLUSTER
+            """
         }
     }
 }

@@ -23,12 +23,19 @@ type TiKVConfig struct {
 	LogLevel string `json:"log-level,omitempty" toml:"log-level,omitempty"`
 	// +optional
 	LogFile string `json:"log-file,omitempty" toml:"log-file,omitempty"`
+	// +optional
+	SlowLogFile string `json:"slow-log-file,omitempty" toml:"slow-log-file,omitempty"`
+	// +optional
+	SlowLogThreshold string `json:"slow-log-threshold,omitempty" toml:"slow-log-threshold,omitempty"`
 	// Optional: Defaults to 24h
 	// +optional
 	LogRotationTimespan string `json:"log-rotation-timespan,omitempty" toml:"log-rotation-timespan,omitempty"`
 	// +optional
+	LogRotationSize string `json:"log-rotation-size,omitempty" toml:"log-rotation-size,omitempty"`
+	// +optional
+	RefreshConfigInterval string `json:"refresh-config-interval,omitempty" toml:"refresh-config-interval,omitempty"`
+	// +optional
 	PanicWhenUnexpectedKeyOrData *bool `json:"panic-when-unexpected-key-or-data,omitempty" toml:"panic-when-unexpected-key-or-data,omitempty"`
-
 	// +optional
 	Server *TiKVServerConfig `json:"server,omitempty" toml:"server,omitempty"`
 	// +optional
@@ -66,21 +73,25 @@ type TiKVPessimisticTxnConfig struct {
 // +k8s:openapi-gen=true
 type TiKVReadPoolConfig struct {
 	// +optional
+	Unified *TiKVUnifiedReadPoolConfig `json:"unified,omitempty" toml:"unified,omitempty"`
+	// +optional
 	Coprocessor *TiKVCoprocessorReadPoolConfig `json:"coprocessor,omitempty" toml:"coprocessor,omitempty"`
 	// +optional
 	Storage *TiKVStorageReadPoolConfig `json:"storage,omitempty" toml:"storage,omitempty"`
-	// +optional
-	Unified *TiKVUnifiedReadPoolConfig `json:"unified,omitempty" toml:"unified,omitempty"`
 }
+
 
 // +k8s:openapi-gen=true
 type TiKVUnifiedReadPoolConfig struct {
 	// +optional
-	MinThreadCount *int64 `json:"min-thread-count,omitempty" toml:"min-thread-count,omitempty"`
+	MinThreadCount int32 `json:"min-thread-count,omitempty" toml:"min-thread-count,omitempty"`
 	// +optional
-	MaxThreadCount *int64 `json:"max-thread-count,omitempty" toml:"max-thread-count,omitempty"`
+	MaxThreadCount int32 `json:"max-thread-count,omitempty" toml:"max-thread-count,omitempty"`
+	// +optional
+	StackSize string `json:"stack-size,omitempty" toml:"stack-size,omitempty"`
+	// +optional
+	MaxTasksPerWorker int32 `json:"max-tasks-per-worker,omitempty" toml:"max-tasks-per-worker,omitempty"`
 }
-
 
 // +k8s:openapi-gen=true
 type TiKVStorageReadPoolConfig struct {
@@ -550,7 +561,11 @@ type TiKVServerConfig struct {
 	// +optional
 	Labels map[string]string `json:"labels,omitempty" toml:"labels,omitempty"`
 	// +optional
-	RequestBatchEnableCrossCommand *bool `json:"request-batch-enable-cross-command,omitempty" toml:"request-batch-enable-cross-command,omitempty"`
+	EnableRequestBatch bool `json:"enable-request-batch,omitempty" toml:"enable-request-batch,omitempty"`
+	// +optional
+	RequestBatchEnableCrossCommand bool `json:"request-batch-enable-cross-command,omitempty" toml:"request-batch-enable-cross-command,omitempty"`
+	// +optional
+	RequestBatchWaitDuration string `json:"request-batch-wait-duration,omitempty" toml:"request-batch-wait-duration,omitempty"`
 }
 
 // TiKVRaftstoreConfig is the configuration of TiKV raftstore component.
@@ -774,7 +789,7 @@ type TiKVEncryptionConfig struct {
 	// Possible values: plaintext, aes128-ctr, aes192-ctr, aes256-ctr
 	// Optional: Default to plaintext
 	// optional
-	Method string `json:"method,omitempty" toml:"method,omitempty"`
+	Method string `json:"data-encryption-method,omitempty" toml:"data-encryption-method,omitempty"`
 
 	// The frequency of datakey rotation, It managered by tikv
 	// Optional: default to 7d
@@ -839,4 +854,16 @@ type MasterKeyKMSConfig struct {
 	// Used for KMS compatible KMS, such as Ceph, minio, If use AWS, leave empty
 	// optional
 	Endpoint string `json:"endpoint,omitempty" toml:"endpoint,omitempty"`
+}
+
+// +k8s:openapi-gen=true
+type TiKVPessimisticTxn struct {
+	// +optional
+	Enabled bool `json:"enabled,omitempty" toml:"enabled,omitempty"`
+	// +optional
+	WaitForLockTimeout int32 `json:"wait-for-lock-timeout,omitempty" toml:"wait-for-lock-timeout,omitempty"`
+	// +optional
+	WakeUpDelayDuration int32 `json:"wake-up-delay-duration,omitempty" toml:"wake-up-delay-duration,omitempty"`
+	// +optional
+	Pipelined bool `json:"pipelined,omitempty" toml:"pipelined,omitempty"`
 }

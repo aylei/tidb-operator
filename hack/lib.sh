@@ -33,12 +33,12 @@ DOCS_BIN=$OUTPUT_BIN/gen-crd-api-reference-docs
 # (https://github.com/helm/helm/issues/6361) has been fixed.
 #
 HELM_VERSION=${HELM_VERSION:-2.9.1}
-KIND_VERSION=${KIND_VERSION:-0.7.0}
-DOCS_VERSION=${DOCS_VERSION:-0.1.5}
+KIND_VERSION=${KIND_VERSION:-0.8.1}
+DOCS_VERSION=${DOCS_VERSION:-0.2.1}
 KIND_BIN=$OUTPUT_BIN/kind
-KUBETEST2_VERSION=v0.0.8
+KUBETEST2_VERSION=v0.1.0
 KUBETSTS2_BIN=$OUTPUT_BIN/kubetest2
-AWS_K8S_TESTER_VERSION=v0.7.4
+AWS_K8S_TESTER_VERSION=v1.1.5
 AWS_K8S_TESTER_BIN=$OUTPUT_BIN/aws-k8s-tester
 
 test -d "$OUTPUT_BIN" || mkdir -p "$OUTPUT_BIN"
@@ -230,7 +230,7 @@ function hack::ensure_gen_crd_api_references_docs() {
     echo "Installing gen_crd_api_references_docs v$DOCS_VERSION..."
     tmpdir=$(mktemp -d)
     trap "test -d $tmpdir && rm -r $tmpdir" RETURN
-    curl --retry 10 -L -o ${tmpdir}/docs-bin.tar.gz https://github.com/ahmetb/gen-crd-api-reference-docs/releases/download/v${DOCS_VERSION}/gen-crd-api-reference-docs_${OS}_${ARCH}.tar.gz
+    curl --retry 10 -L -o ${tmpdir}/docs-bin.tar.gz https://github.com/Yisaer/gen-crd-api-reference-docs/releases/download/v${DOCS_VERSION}/gen-crd-api-reference-docs_${OS}_${ARCH}.tar.gz
     tar -zvxf ${tmpdir}/docs-bin.tar.gz -C ${tmpdir}
     mv ${tmpdir}/gen-crd-api-reference-docs ${DOCS_BIN}
     chmod +x ${DOCS_BIN}
