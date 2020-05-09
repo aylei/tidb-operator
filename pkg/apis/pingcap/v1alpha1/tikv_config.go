@@ -87,10 +87,6 @@ type TiKVUnifiedReadPoolConfig struct {
 	MinThreadCount int32 `json:"min-thread-count,omitempty" toml:"min-thread-count,omitempty"`
 	// +optional
 	MaxThreadCount int32 `json:"max-thread-count,omitempty" toml:"max-thread-count,omitempty"`
-	// +optional
-	StackSize string `json:"stack-size,omitempty" toml:"stack-size,omitempty"`
-	// +optional
-	MaxTasksPerWorker int32 `json:"max-tasks-per-worker,omitempty" toml:"max-tasks-per-worker,omitempty"`
 }
 
 // +k8s:openapi-gen=true

@@ -3336,17 +3336,12 @@ spec:
                           type: object
                         unified:
                           properties:
-                            max-tasks-per-worker:
-                              format: int32
-                              type: integer
                             max-thread-count:
                               format: int32
                               type: integer
                             min-thread-count:
                               format: int32
                               type: integer
-                            stack-size:
-                              type: string
                           type: object
                       type: object
                     refresh-config-interval:
